@@ -35,6 +35,7 @@ async function run() {
     const database = client.db("bookCove");
     const booksCollection = database.collection("books");
     // const borrowedBooksCollection = database.collection("borrowedBooks");
+
     // save a bookData in DB
     app.post('/add-book', async ( req, res ) => {
         const bookData = req.body
@@ -42,6 +43,13 @@ async function run() {
         console.log(result);
         res.send(result)
     })
+    // get all books data
+    app.get("/books", async (req, res) => {
+        const category = req.query.category;
+        const query = category ? { category } : {};
+        const result = await booksCollection.find(query).toArray();
+        res.send(result);
+      });
 
 
 
