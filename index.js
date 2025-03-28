@@ -25,14 +25,14 @@ async function run() {
     const booksCollection = database.collection("books");
     const borrowedBooksCollection = database.collection("borrowedBooks");
 
-    // ✅ Add a new book
+    //Add a new book
     app.post("/add-book", async (req, res) => {
       const bookData = req.body;
       const result = await booksCollection.insertOne(bookData);
       res.send(result);
     });
 
-    // ✅ Get all books by category
+    //Get all books by category
     app.get("/books", async (req, res) => {
       const category = req.query.category;
       const query = category ? { category } : {};
@@ -40,14 +40,14 @@ async function run() {
       res.send(result);
     });
 
-    // ✅ Get single book details
+    // Get single book details
     app.get("/books/:id", async (req, res) => {
       const { id } = req.params;
       const book = await booksCollection.findOne({ _id: new ObjectId(id) });
       res.send(book);
     });
 
-    // ✅ Borrow a book
+    //Borrow a book
     app.post("/borrow", async (req, res) => {
       const { bookId, userName, userEmail, returnDate } = req.body;
 
@@ -60,13 +60,12 @@ async function run() {
       // Decrease book quantity
       await booksCollection.updateOne({ _id: new ObjectId(bookId) }, { $inc: { quantity: -1 } });
 
-      // Save borrowed book
-      const borrowedBook = { bookId, userName, userEmail, returnDate, borrowedAt: new Date() };
-      await borrowedBooksCollection.insertOne(borrowedBook);
+    //   // Save borrowed book
+    //   const borrowedBook = { bookId, userName, userEmail, returnDate, borrowedAt: new Date() };
+    //   await borrowedBooksCollection.insertOne(borrowedBook);
 
       res.send({ message: "Book borrowed successfully!" });
     });
-
   } finally {
     // await client.close(); // Uncomment if needed
   }
