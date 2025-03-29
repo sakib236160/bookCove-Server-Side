@@ -23,16 +23,15 @@ async function run() {
 
     const database = client.db("bookCove");
     const booksCollection = database.collection("books");
-    const borrowedBooksCollection = database.collection("borrowedBooks");
 
-    //Add a new book
+    // Add a new book
     app.post("/add-book", async (req, res) => {
       const bookData = req.body;
       const result = await booksCollection.insertOne(bookData);
       res.send(result);
     });
 
-    //Get all books by category
+    // Get all books by category
     app.get("/books", async (req, res) => {
       const category = req.query.category;
       const query = category ? { category } : {};
@@ -47,7 +46,29 @@ async function run() {
       res.send(book);
     });
 
-    //Borrow a book
+    // Update book
+    app.put("/books/:id", async (req, res) => {
+      const { id } = req.params;
+      const { _id, ...updatedData } = req.body; // Removing _id field from updated data
+
+      // Ensure quantity is a number
+      if (updatedData.quantity) {
+        updatedData.quantity = Number(updatedData.quantity); // Convert to number
+      }
+
+      try {
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = { $set: updatedData };
+
+        const result = await booksCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } catch (error) {
+        console.error("Error updating book:", error);
+        res.status(500).send({ message: "Failed to update book" });
+      }
+    });
+
+    // Borrow a book
     app.post("/borrow", async (req, res) => {
       const { bookId, userName, userEmail, returnDate } = req.body;
 
@@ -60,16 +81,13 @@ async function run() {
       // Decrease book quantity
       await booksCollection.updateOne({ _id: new ObjectId(bookId) }, { $inc: { quantity: -1 } });
 
-    //   // Save borrowed book
-    //   const borrowedBook = { bookId, userName, userEmail, returnDate, borrowedAt: new Date() };
-    //   await borrowedBooksCollection.insertOne(borrowedBook);
-
       res.send({ message: "Book borrowed successfully!" });
     });
   } finally {
     // await client.close(); // Uncomment if needed
   }
 }
+
 run().catch(console.dir);
 
 app.get("/", (req, res) => res.send("Book Borrowing System is Running!"));
