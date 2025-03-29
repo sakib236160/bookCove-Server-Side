@@ -39,7 +39,7 @@ async function run() {
 
 
     app.post("/borrow", async (req, res) => {
-      const { bookId, userEmail, returnDate } = req.body;
+      const { bookId, userEmail, returnDate, image, name, category  } = req.body;
     
       try {
         const book = await booksCollection.findOne({ _id: new ObjectId(bookId) });
@@ -58,6 +58,9 @@ async function run() {
             bookId,
             userEmail,
             returnDate,
+            image,
+            name,
+            category ,
             borrowedDate: new Date().toISOString(),
           });
     
@@ -161,3 +164,4 @@ run().catch(console.dir);
 
 app.get("/", (req, res) => res.send("Book Borrowing System is Running!"));
 app.listen(port, () => console.log(`Server running on port: ${port}`));
+
