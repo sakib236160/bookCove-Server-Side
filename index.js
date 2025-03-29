@@ -23,10 +23,94 @@ async function run() {
 
     const database = client.db("bookCove");
     const booksCollection = database.collection("books");
+    const borrowedBooksCollection = database.collection("borrowedBooks");
 
-    // Add a new book
+    // Get borrowed books for a specific user
+    app.get("/borrowed-books", async (req, res) => {
+      const { email } = req.query;
+      if (!email) return res.status(400).send({ message: "User email required!" });
+
+      const borrowedBooks = await borrowedBooksCollection.find({ userEmail: email }).toArray();
+      res.send(borrowedBooks);
+    });
+
+
+
+
+
+    app.post("/borrow", async (req, res) => {
+      const { bookId, userEmail, returnDate } = req.body;
+    
+      try {
+        const book = await booksCollection.findOne({ _id: new ObjectId(bookId) });
+    
+        if (!book) return res.status(404).send({ message: "Book not found" });
+    
+        const quantity = parseInt(book.quantity); // Ensure quantity is a number
+    
+        if (quantity > 0) {
+          await booksCollection.updateOne(
+            { _id: new ObjectId(bookId) },
+            { $set: { quantity: quantity - 1 } } // Decrease the quantity
+          );
+    
+          await borrowedBooksCollection.insertOne({
+            bookId,
+            userEmail,
+            returnDate,
+            borrowedDate: new Date().toISOString(),
+          });
+    
+          return res.send({ message: "Book borrowed successfully!" });
+        } else {
+          return res.status(400).send({ message: "Book is out of stock!" });
+        }
+      } catch (error) {
+        res.status(500).send({ message: "Error borrowing book!", error });
+      }
+    });    
+    
+
+
+
+    app.delete("/return-book/:id", async (req, res) => {
+      const { id } = req.params;
+      const { bookId } = req.body;
+    
+      try {
+        const book = await booksCollection.findOne({ _id: new ObjectId(bookId) });
+    
+        if (!book) return res.status(404).send({ message: "Book not found" });
+    
+        const quantity = parseInt(book.quantity); // Ensure quantity is a number
+    
+        await booksCollection.updateOne(
+          { _id: new ObjectId(bookId) },
+          { $set: { quantity: quantity + 1 } } // Increase quantity after returning
+        );
+    
+        await borrowedBooksCollection.deleteOne({ _id: new ObjectId(id) });
+    
+        return res.send({ message: "Book returned successfully!" });
+      } catch (error) {
+        res.status(500).send({ message: "Error returning book!", error });
+      }
+    });    
+    
+
+
+
+
+
+
+
+
+
+    // Add a new book (for testing purposes)
     app.post("/add-book", async (req, res) => {
       const bookData = req.body;
+      // Ensure quantity is a number
+      bookData.quantity = Number(bookData.quantity);
       const result = await booksCollection.insertOne(bookData);
       res.send(result);
     });
@@ -46,14 +130,13 @@ async function run() {
       res.send(book);
     });
 
-    // Update book
+    // Update book details
     app.put("/books/:id", async (req, res) => {
       const { id } = req.params;
-      const { _id, ...updatedData } = req.body; // Removing _id field from updated data
+      const { _id, ...updatedData } = req.body; 
 
-      // Ensure quantity is a number
       if (updatedData.quantity) {
-        updatedData.quantity = Number(updatedData.quantity); // Convert to number
+        updatedData.quantity = Number(updatedData.quantity); 
       }
 
       try {
@@ -68,23 +151,9 @@ async function run() {
       }
     });
 
-    // Borrow a book
-    app.post("/borrow", async (req, res) => {
-      const { bookId, userName, userEmail, returnDate } = req.body;
-
-      // Check book availability
-      const book = await booksCollection.findOne({ _id: new ObjectId(bookId) });
-      if (!book || book.quantity <= 0) {
-        return res.status(400).send({ message: "This book is out of stock!" });
-      }
-
-      // Decrease book quantity
-      await booksCollection.updateOne({ _id: new ObjectId(bookId) }, { $inc: { quantity: -1 } });
-
-      res.send({ message: "Book borrowed successfully!" });
-    });
   } finally {
-    // await client.close(); // Uncomment if needed
+    // Uncomment if you want to close the connection after the operation
+    // await client.close();
   }
 }
 
