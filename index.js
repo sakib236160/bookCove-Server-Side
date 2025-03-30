@@ -18,7 +18,11 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://book-cove.web.app",
+      "https://book-cove.firebaseapp.com"
+    ],
     credentials: true,
   })
 );
@@ -61,8 +65,8 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
-    console.log("Connected to MongoDB!");
+    // await client.connect();
+    // console.log("Connected to MongoDB!");
 
     const database = client.db("bookCove");
     const booksCollection = database.collection("books");
@@ -71,11 +75,12 @@ async function run() {
     // Auth Related Api jwt start
     app.post("/jwt", async (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "1h" });
+      const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "10h" });
       res
         .cookie("token", token, {
           httpOnly: true,
-          secure: false, // http://localhost:5173/login
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
         .send({ success: true });
     });
@@ -84,7 +89,8 @@ async function run() {
       res
         .clearCookie("token", {
           httpOnly: true,
-          secure: false,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
         .send({ success: true });
     });
