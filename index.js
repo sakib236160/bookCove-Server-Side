@@ -1,12 +1,29 @@
 const express = require("express");
 const cors = require("cors");
+
+
+// jwt start
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+// jwt end
+
+
+
+
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+// jwt start
+app.use(cookieParser());
+// jwt end
+
+app.use(cors({
+  origin:['http://localhost:5173'],
+  credentials: true,
+}));
 app.use(express.json());
 
 // MongoDB Connection
@@ -24,6 +41,27 @@ async function run() {
     const database = client.db("bookCove");
     const booksCollection = database.collection("books");
     const borrowedBooksCollection = database.collection("borrowedBooks");
+
+
+
+
+    // Auth Related Api jwt start
+    app.post('/jwt', async(req,res)=>{
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_SECRET, {expiresIn:'1h'})
+      res
+      .cookie('token', token,{
+        httpOnly: true,
+        secure: false, // http://localhost:5173/login
+      })
+      .send({success: true});
+    })
+    // jwt end
+
+
+
+
+
 
     // Get borrowed books for a specific user
     app.get("/borrowed-books", async (req, res) => {
@@ -122,6 +160,9 @@ async function run() {
     app.get("/books", async (req, res) => {
       const category = req.query.category;
       const query = category ? { category } : {};
+      // jwt start
+      console.log('cuk cuk cookies', req.cookies);
+      //jwt end
       const result = await booksCollection.find(query).toArray();
       res.send(result);
     });
