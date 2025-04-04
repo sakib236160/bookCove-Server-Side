@@ -1,34 +1,27 @@
 const express = require("express");
 const cors = require("cors");
-
-// jwt start
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
-// jwt end
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-
-// jwt start
 app.use(cookieParser());
-// jwt end
 
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
       "https://book-cove.web.app",
-      "https://book-cove.firebaseapp.com"
+      "https://book-cove.firebaseapp.com",
     ],
     credentials: true,
   })
 );
 app.use(express.json());
 
-// jwt start
 const logger = (req, res, next) => {
   console.log("inside the logger");
   next();
@@ -50,7 +43,6 @@ const verifyToken = (req, res, next) => {
     next();
   });
 };
-// jwt end
 
 // MongoDB Connection
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.BD_PASS}@cluster0.k7k1l.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -75,7 +67,9 @@ async function run() {
     // Auth Related Api jwt start
     app.post("/jwt", async (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "10h" });
+      const token = jwt.sign(user, process.env.JWT_SECRET, {
+        expiresIn: "10h",
+      });
       res
         .cookie("token", token, {
           httpOnly: true,
@@ -94,18 +88,15 @@ async function run() {
         })
         .send({ success: true });
     });
-    // jwt end
 
     // Get borrowed books for a specific user
     app.get("/borrowed-books", verifyToken, async (req, res) => {
       const { email } = req.query;
       if (!email)
         return res.status(400).send({ message: "User email required!" });
-      // jwt start
       if (req.user.email !== req.query.email) {
         return res.status(403).send({ message: "forbidden access" });
       }
-      // jwt end
 
       const borrowedBooks = await borrowedBooksCollection
         .find({ userEmail: email })
@@ -123,12 +114,12 @@ async function run() {
 
         if (!book) return res.status(404).send({ message: "Book not found" });
 
-        const quantity = parseInt(book.quantity); // Ensure quantity is a number
+        const quantity = parseInt(book.quantity);
 
         if (quantity > 0) {
           await booksCollection.updateOne(
             { _id: new ObjectId(bookId) },
-            { $set: { quantity: quantity - 1 } } // Decrease the quantity
+            { $set: { quantity: quantity - 1 } }
           );
 
           await borrowedBooksCollection.insertOne({
@@ -161,11 +152,11 @@ async function run() {
 
         if (!book) return res.status(404).send({ message: "Book not found" });
 
-        const quantity = parseInt(book.quantity); // Ensure quantity is a number
+        const quantity = parseInt(book.quantity);
 
         await booksCollection.updateOne(
           { _id: new ObjectId(bookId) },
-          { $set: { quantity: quantity + 1 } } // Increase quantity after returning
+          { $set: { quantity: quantity + 1 } }
         );
 
         await borrowedBooksCollection.deleteOne({ _id: new ObjectId(id) });
@@ -179,7 +170,6 @@ async function run() {
     // Add a new book (for testing purposes)
     app.post("/add-book", async (req, res) => {
       const bookData = req.body;
-      // Ensure quantity is a number
       bookData.quantity = Number(bookData.quantity);
       const result = await booksCollection.insertOne(bookData);
       res.send(result);
