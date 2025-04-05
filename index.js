@@ -64,7 +64,7 @@ async function run() {
     const booksCollection = database.collection("books");
     const borrowedBooksCollection = database.collection("borrowedBooks");
 
-    // Auth Related Api jwt start
+    // Auth Related Api token-jwt start
     app.post("/jwt", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.JWT_SECRET, {
